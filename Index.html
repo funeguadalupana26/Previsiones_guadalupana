@@ -1,0 +1,986 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Contratos a Previsión — Funerales Guadalupana</title>
+<meta name="theme-color" content="#2f3e37">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root{
+  --tinta:#1b2621;
+  --tinta-suave:#374943;
+  --pergamino:#efead9;
+  --pergamino-oscuro:#e4ddc7;
+  --panel:#f9f7ef;
+  --linea:#cfc6a8;
+  --bronce:#9a7b34;
+  --bronce-suave:#c7a862;
+  --rojo:#8c3b34;
+  --verde-ok:#3f6b4a;
+  --sombra:0 2px 10px rgba(27,38,33,.10);
+  --radio:6px;
+  font-size:16px;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:var(--tinta);
+  color:var(--tinta);
+  font-family:'Inter',system-ui,sans-serif;
+  min-height:100vh;
+  -webkit-tap-highlight-color:transparent;
+}
+h1,h2,h3,.serif{font-family:'Source Serif 4',Georgia,serif;}
+button{font-family:inherit;}
+input,select,textarea{font-family:inherit;font-size:1rem;}
+
+/* ---------- LOGIN ---------- */
+#pantalla-login{
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:28px;
+  padding:24px;
+  background:
+    radial-gradient(circle at 50% -10%, #33443c 0%, var(--tinta) 55%);
+  color:var(--pergamino);
+  text-align:center;
+}
+#pantalla-login .sello{
+  width:64px;height:64px;border:2px solid var(--bronce-suave);border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Source Serif 4',serif;font-size:1.6rem;color:var(--bronce-suave);
+  letter-spacing:1px;
+}
+#pantalla-login h1{font-size:1.4rem;font-weight:600;margin:0;letter-spacing:.3px;}
+#pantalla-login p.sub{margin:0;opacity:.7;font-size:.9rem;}
+.pin-puntos{display:flex;gap:14px;margin:6px 0 4px;}
+.pin-punto{width:16px;height:16px;border-radius:50%;border:1.5px solid var(--bronce-suave);transition:background .15s;}
+.pin-punto.lleno{background:var(--bronce-suave);}
+.teclado{display:grid;grid-template-columns:repeat(3,72px);gap:14px;}
+.tecla{
+  width:72px;height:72px;border-radius:50%;border:1px solid rgba(239,234,217,.25);
+  background:rgba(255,255,255,.04);color:var(--pergamino);font-size:1.4rem;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;
+}
+.tecla:active{background:rgba(239,234,217,.15);}
+.tecla.vacia{border:none;background:none;cursor:default;}
+#error-login{color:#e2a49e;font-size:.85rem;min-height:1.2em;}
+
+/* ---------- APP ---------- */
+#pantalla-app{display:none;min-height:100vh;background:var(--pergamino);}
+.barra-top{
+  background:var(--tinta);color:var(--pergamino);
+  padding:14px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;
+  position:sticky;top:0;z-index:20;
+}
+.barra-top .marca{display:flex;align-items:center;gap:10px;}
+.barra-top .marca .anillo{width:34px;height:34px;border-radius:50%;border:1.5px solid var(--bronce-suave);display:flex;align-items:center;justify-content:center;font-size:.8rem;font-family:'Source Serif 4',serif;color:var(--bronce-suave);flex:none;}
+.barra-top h1{font-size:1rem;margin:0;font-weight:600;line-height:1.2;}
+.barra-top .folio-vivo{font-size:.72rem;opacity:.65;}
+.barra-top button.salir{background:none;border:1px solid rgba(239,234,217,.3);color:var(--pergamino);border-radius:var(--radio);padding:6px 12px;font-size:.78rem;cursor:pointer;}
+
+nav.tabs{
+  display:flex;background:var(--pergamino-oscuro);border-bottom:1px solid var(--linea);
+  position:sticky;top:57px;z-index:19;overflow-x:auto;
+}
+nav.tabs button{
+  flex:1;min-width:120px;padding:12px 8px;background:none;border:none;color:var(--tinta-suave);
+  font-size:.82rem;font-weight:600;cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap;
+}
+nav.tabs button.activa{color:var(--tinta);border-bottom-color:var(--bronce);}
+
+main{max-width:920px;margin:0 auto;padding:20px 16px 80px;}
+.vista{display:none;}
+.vista.activa{display:block;}
+
+.tarjeta{
+  background:var(--panel);border:1px solid var(--linea);border-radius:var(--radio);
+  padding:18px;margin-bottom:16px;box-shadow:var(--sombra);
+}
+.tarjeta h2{font-size:1.02rem;margin:0 0 4px;}
+.tarjeta .desc{font-size:.82rem;color:var(--tinta-suave);margin:0 0 14px;}
+
+.campo{margin-bottom:14px;}
+.campo label{display:block;font-size:.78rem;font-weight:600;color:var(--tinta-suave);margin-bottom:5px;}
+.campo input,.campo select,.campo textarea{
+  width:100%;padding:10px 11px;border:1px solid var(--linea);border-radius:var(--radio);
+  background:#fff;color:var(--tinta);
+}
+.campo input:focus,.campo select:focus,.campo textarea:focus{outline:2px solid var(--bronce-suave);outline-offset:1px;}
+.fila{display:flex;gap:12px;flex-wrap:wrap;}
+.fila>.campo{flex:1;min-width:200px;}
+.campo.ro input{background:#f1efe4;color:var(--tinta-suave);}
+
+.grupo-modalidad{display:flex;gap:10px;margin-bottom:14px;}
+.chip-modalidad{
+  flex:1;text-align:center;padding:12px 8px;border:1.5px solid var(--linea);border-radius:var(--radio);
+  cursor:pointer;font-weight:600;font-size:.88rem;background:#fff;
+}
+.chip-modalidad.activa{border-color:var(--bronce);background:#fbf3e3;color:var(--bronce);}
+
+.paquetes{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-bottom:6px;}
+.paquete{
+  border:1.5px solid var(--linea);border-radius:var(--radio);padding:14px;cursor:pointer;background:#fff;
+}
+.paquete.activa{border-color:var(--bronce);box-shadow:0 0 0 2px rgba(154,123,52,.18) inset;}
+.paquete .nombre{font-weight:700;font-size:.94rem;margin-bottom:4px;}
+.paquete .precio{font-family:'Source Serif 4',serif;font-size:1.25rem;color:var(--bronce);margin-bottom:8px;}
+.paquete ul{margin:0;padding-left:18px;font-size:.78rem;color:var(--tinta-suave);}
+.paquete ul li{margin-bottom:2px;}
+.aviso-editar{font-size:.72rem;color:var(--rojo);margin-top:8px;}
+
+.resumen-pago{background:#fbf7ea;border:1px dashed var(--bronce-suave);border-radius:var(--radio);padding:14px;margin:10px 0 16px;}
+.resumen-pago .linea{display:flex;justify-content:space-between;font-size:.86rem;padding:4px 0;}
+.resumen-pago .linea.total{font-weight:700;border-top:1px solid var(--linea);margin-top:6px;padding-top:8px;}
+
+.grupo-plazo{display:flex;gap:10px;margin-bottom:6px;}
+.chip-plazo{flex:1;text-align:center;padding:10px;border:1.5px solid var(--linea);border-radius:var(--radio);cursor:pointer;font-size:.85rem;font-weight:600;background:#fff;}
+.chip-plazo.activa{border-color:var(--bronce);background:#fbf3e3;color:var(--bronce);}
+
+.metodos-pago{font-size:.8rem;color:var(--tinta-suave);background:#fff;border:1px solid var(--linea);border-radius:var(--radio);padding:12px 14px;margin-top:4px;}
+.metodos-pago b{color:var(--tinta);}
+
+.botonera{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px;}
+.btn{
+  padding:12px 18px;border-radius:var(--radio);border:none;font-weight:600;font-size:.86rem;cursor:pointer;
+  display:inline-flex;align-items:center;gap:8px;
+}
+.btn-primario{background:var(--tinta);color:var(--pergamino);}
+.btn-secundario{background:#fff;border:1.5px solid var(--tinta);color:var(--tinta);}
+.btn-whatsapp{background:#2f6b46;color:#fff;}
+.btn:disabled{opacity:.45;cursor:not-allowed;}
+.mensaje-estado{font-size:.82rem;margin-top:10px;min-height:1.2em;}
+.mensaje-estado.ok{color:var(--verde-ok);}
+.mensaje-estado.error{color:var(--rojo);}
+
+table.lista{width:100%;border-collapse:collapse;font-size:.82rem;}
+table.lista th{text-align:left;font-size:.7rem;text-transform:uppercase;letter-spacing:.4px;color:var(--tinta-suave);border-bottom:1px solid var(--linea);padding:6px 8px;}
+table.lista td{padding:8px;border-bottom:1px solid #ece6d3;}
+table.lista tr:last-child td{border-bottom:none;}
+.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:.68rem;font-weight:700;}
+.badge.Activo{background:#e4efe6;color:var(--verde-ok);}
+.badge.Liquidado{background:#e6e2f2;color:#4e3f8c;}
+.badge.Cancelado{background:#f2e2e0;color:var(--rojo);}
+
+.buscador{display:flex;gap:10px;margin-bottom:12px;}
+.buscador input{flex:1;}
+
+.ficha-abono{background:#fbf7ea;border:1px solid var(--bronce-suave);border-radius:var(--radio);padding:12px 14px;margin-bottom:14px;font-size:.85rem;display:none;}
+.ficha-abono .linea{display:flex;justify-content:space-between;padding:3px 0;}
+
+@media (min-width:720px){
+  .fila.centrado{align-items:flex-end;}
+}
+</style>
+</head>
+<body>
+
+<!-- ================= LOGIN ================= -->
+<section id="pantalla-login">
+  <div class="sello">FG</div>
+  <div>
+    <h1>Funerales Guadalupana</h1>
+    <p class="sub">Contratos a Previsión · ingresa tu PIN</p>
+  </div>
+  <div class="pin-puntos" id="pin-puntos"></div>
+  <div class="teclado" id="teclado"></div>
+  <p id="error-login"></p>
+</section>
+
+<!-- ================= APP ================= -->
+<section id="pantalla-app">
+  <div class="barra-top">
+    <div class="marca">
+      <div class="anillo">FG</div>
+      <div>
+        <h1>Funerales Guadalupana</h1>
+        <div class="folio-vivo" id="folio-vivo">Contratos a previsión</div>
+      </div>
+    </div>
+    <button class="salir" id="btn-salir">Salir</button>
+  </div>
+
+  <nav class="tabs">
+    <button data-vista="nuevo" class="activa">Nuevo contrato</button>
+    <button data-vista="abono">Registrar abono</button>
+    <button data-vista="lista">Contratos</button>
+  </nav>
+
+  <main>
+
+    <!-- ---------- VISTA: NUEVO CONTRATO ---------- -->
+    <div class="vista activa" id="vista-nuevo">
+
+      <div class="tarjeta">
+        <h2>Folio del contrato</h2>
+        <p class="desc">Se genera automáticamente al abrir un contrato nuevo.</p>
+        <div class="fila">
+          <div class="campo ro"><label>Folio</label><input id="c-folio" readonly></div>
+          <div class="campo"><label>Fecha de registro</label><input id="c-fecha" type="date"></div>
+        </div>
+        <button class="btn btn-secundario" id="btn-nuevo-folio" type="button">Generar nuevo folio</button>
+      </div>
+
+      <div class="tarjeta">
+        <h2>Datos del contratante</h2>
+        <p class="desc">Titular que firma el contrato.</p>
+        <div class="campo"><label>Nombre completo del titular contratante</label><input id="c-nombre" placeholder="Ej. Carlos César Martínez Rivera"></div>
+        <div class="campo"><label>Domicilio</label><input id="c-domicilio" placeholder="Calle, número, colonia, ciudad"></div>
+        <div class="fila">
+          <div class="campo"><label>Número de contacto</label><input id="c-telefono" type="tel" placeholder="2281234567"></div>
+          <div class="campo"><label>Correo electrónico</label><input id="c-correo" type="email" placeholder="correo@ejemplo.com"></div>
+        </div>
+      </div>
+
+      <div class="tarjeta">
+        <h2>Beneficiario forzoso</h2>
+        <p class="desc">Persona designada como beneficiaria preferente del servicio.</p>
+        <div class="fila">
+          <div class="campo"><label>Nombre del beneficiario</label><input id="c-benef-nombre" placeholder="Ej. Luis Armando Martínez Rivera"></div>
+          <div class="campo"><label>Parentesco</label><input id="c-benef-parentesco" placeholder="Ej. Hijo, esposa, hermano..."></div>
+        </div>
+      </div>
+
+      <div class="tarjeta">
+        <h2>Modalidad del servicio</h2>
+        <p class="desc">Selecciona la modalidad y el paquete contratado.</p>
+        <div class="grupo-modalidad">
+          <div class="chip-modalidad" data-modalidad="Cremación">Cremación</div>
+          <div class="chip-modalidad" data-modalidad="Inhumación">Inhumación</div>
+        </div>
+        <div class="paquetes" id="contenedor-paquetes"></div>
+        <p class="aviso-editar" id="aviso-paquetes-placeholder"></p>
+      </div>
+
+      <div class="tarjeta">
+        <h2>Estructura de pago</h2>
+        <p class="desc">Enganche del 25% editable y el resto financiado sin ampliar el plazo.</p>
+
+        <div class="fila">
+          <div class="campo ro"><label>Precio total del servicio</label><input id="c-precio-total" readonly></div>
+          <div class="campo"><label>Enganche (%)</label><input id="c-enganche-pct" type="number" min="0" max="100" step="0.5" value="25"></div>
+          <div class="campo"><label>Enganche ($ — editable)</label><input id="c-enganche-monto" type="number" min="0" step="0.01"></div>
+        </div>
+
+        <div class="grupo-plazo">
+          <div class="chip-plazo" data-plazo="mensual">18 pagos mensuales</div>
+          <div class="chip-plazo" data-plazo="quincenal">36 pagos quincenales</div>
+        </div>
+
+        <div class="resumen-pago">
+          <div class="linea"><span>Saldo a financiar</span><b id="r-saldo">$0.00</b></div>
+          <div class="linea"><span id="r-plazo-label">Monto por pago</span><b id="r-monto-pago">$0.00</b></div>
+          <div class="linea total"><span>Precio total</span><b id="r-total">$0.00</b></div>
+        </div>
+
+        <div class="campo"><label>Método de pago del enganche</label>
+          <select id="c-metodo-enganche">
+            <option>Efectivo</option>
+            <option>Tarjeta</option>
+            <option>Transferencia</option>
+          </select>
+        </div>
+
+        <div class="metodos-pago">
+          <b>Métodos de pago:</b> los pagos (enganche y mensualidades/quincenas) se realizan de forma presencial en las oficinas de Funerales Guadalupana, mediante efectivo, pago con tarjeta o transferencia bancaria.
+        </div>
+      </div>
+
+      <div class="tarjeta">
+        <div class="botonera">
+          <button class="btn btn-primario" id="btn-guardar-contrato" type="button">Guardar contrato</button>
+          <button class="btn btn-secundario" id="btn-descargar-pdf" type="button">Descargar PDF</button>
+          <button class="btn btn-whatsapp" id="btn-enviar-whatsapp" type="button">Enviar por WhatsApp</button>
+        </div>
+        <p class="mensaje-estado" id="msg-nuevo"></p>
+      </div>
+    </div>
+
+    <!-- ---------- VISTA: REGISTRAR ABONO ---------- -->
+    <div class="vista" id="vista-abono">
+      <div class="tarjeta">
+        <h2>Buscar contrato</h2>
+        <div class="buscador">
+          <input id="a-buscar-folio" list="lista-folios" placeholder="Escribe o elige el folio del contrato">
+          <datalist id="lista-folios"></datalist>
+          <button class="btn btn-secundario" id="btn-refrescar-folios" type="button">Actualizar</button>
+        </div>
+        <div class="ficha-abono" id="ficha-abono">
+          <div class="linea"><span>Cliente</span><b id="fa-nombre">—</b></div>
+          <div class="linea"><span>Modalidad / paquete</span><b id="fa-paquete">—</b></div>
+          <div class="linea"><span>Saldo pendiente</span><b id="fa-saldo">—</b></div>
+          <div class="linea"><span>Estatus</span><b id="fa-estatus">—</b></div>
+        </div>
+      </div>
+
+      <div class="tarjeta">
+        <h2>Registrar abono</h2>
+        <div class="fila">
+          <div class="campo"><label>Fecha del abono</label><input id="a-fecha" type="date"></div>
+          <div class="campo"><label>Monto abonado ($)</label><input id="a-monto" type="number" min="0" step="0.01"></div>
+          <div class="campo"><label>Método de pago</label>
+            <select id="a-metodo">
+              <option>Efectivo</option>
+              <option>Tarjeta</option>
+              <option>Transferencia</option>
+            </select>
+          </div>
+        </div>
+        <div class="botonera">
+          <button class="btn btn-primario" id="btn-guardar-abono" type="button">Guardar abono</button>
+        </div>
+        <p class="mensaje-estado" id="msg-abono"></p>
+      </div>
+    </div>
+
+    <!-- ---------- VISTA: LISTA DE CONTRATOS ---------- -->
+    <div class="vista" id="vista-lista">
+      <div class="tarjeta">
+        <h2>Contratos registrados</h2>
+        <div class="buscador">
+          <input id="l-buscar" placeholder="Buscar por nombre o folio">
+          <button class="btn btn-secundario" id="btn-refrescar-lista" type="button">Actualizar</button>
+        </div>
+        <div style="overflow-x:auto;">
+          <table class="lista" id="tabla-contratos">
+            <thead><tr><th>Folio</th><th>Cliente</th><th>Plan</th><th>Total</th><th>Saldo</th><th>Estatus</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <p class="mensaje-estado" id="msg-lista"></p>
+      </div>
+    </div>
+
+  </main>
+</section>
+
+<script>
+/* ==========================================================================
+   CONFIGURACIÓN — EDITA ESTOS VALORES ANTES DE PUBLICAR
+   ========================================================================== */
+const CONFIG = {
+  // Pega aquí la URL "/exec" que te da Apps Script al publicar el backend.
+  APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbzXkW49Y9vRFnuB9sG5I_8br5Dh1z-E-spyC_PrhswtjyyTJiFIdCZXJwj1tk7g9oDn/exec',
+
+  EMPRESA: {
+    nombre: 'FUNERALES GUADALUPANA',
+    domicilio: 'Magnolia número 2, esquina Marina Nacional, Colonia Floresta, Xalapa, Veracruz.',
+    telefono: '2282920208'
+  },
+
+  ENGANCHE_PORCENTAJE_DEFAULT: 25,
+
+  PLAZOS: {
+    mensual:   { n: 18, label: '18 pagos mensuales',   unidad: 'mensualidades' },
+    quincenal: { n: 36, label: '36 pagos quincenales', unidad: 'quincenas' }
+  },
+
+  DEDUCCION_CANCELACION_PCT: 20,
+
+  PLANES: {
+    'Cremación': [
+      {
+        id: 'cremacion-previsión',
+        nombre: 'Servicio Funerario de Cremación a Previsión',
+        precio: 13500,
+        incluye: [
+          'Embalsamamiento o preparación del cadáver',
+          'Arreglo estético del cadáver',
+          'Capilla ardiente o equipo de velación',
+          'Una urna básica',
+          'Cuatro cirios',
+          'Certificado de defunción (si el deceso ocurre en domicilio)',
+          'Ataúd en calidad de préstamo para la velación',
+          'Carroza para recolección y cremación (cobertura en Xalapa, Ver.)'
+        ]
+      }
+    ],
+    // ⚠️ EDITA nombres y precios reales de los 3 paquetes de inhumación:
+    'Inhumación': [
+      {
+        id: 'inhumacion-bronce',
+        nombre: '⚠️ Paquete Bronce (editar nombre/precio)',
+        precio: 15000,
+        incluye: ['⚠️ Editar lista de servicios incluidos en este paquete']
+      },
+      {
+        id: 'inhumacion-plata',
+        nombre: '⚠️ Paquete Plata (editar nombre/precio)',
+        precio: 18500,
+        incluye: ['⚠️ Editar lista de servicios incluidos en este paquete']
+      },
+      {
+        id: 'inhumacion-oro',
+        nombre: '⚠️ Paquete Oro (editar nombre/precio)',
+        precio: 23000,
+        incluye: ['⚠️ Editar lista de servicios incluidos en este paquete']
+      }
+    ]
+  }
+};
+
+/* ==========================================================================
+   ESTADO
+   ========================================================================== */
+const estado = {
+  pin: '',
+  token: null,
+  modalidad: null,
+  paquete: null,
+  plazo: null,
+  contratosCache: []
+};
+
+const mxn = (n) => (Number(n) || 0).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' });
+const hoyISO = () => new Date().toISOString().slice(0, 10);
+const fechaLegible = (iso) => {
+  if (!iso) return '';
+  const [y, m, d] = iso.split('-');
+  return `${d}/${m}/${y}`;
+};
+
+/* ==========================================================================
+   API — comunicación con Apps Script (Google Sheets)
+   ========================================================================== */
+async function apiGet(params) {
+  const url = CONFIG.APPS_SCRIPT_URL + '?' + new URLSearchParams(params).toString();
+  const r = await fetch(url);
+  return r.json();
+}
+async function apiPost(body) {
+  // text/plain evita el preflight CORS que Apps Script no maneja bien.
+  const r = await fetch(CONFIG.APPS_SCRIPT_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify(body)
+  });
+  return r.json();
+}
+
+/* ==========================================================================
+   LOGIN CON PIN DE 4 DÍGITOS
+   ========================================================================== */
+const puntosEl = document.getElementById('pin-puntos');
+const tecladoEl = document.getElementById('teclado');
+const errorLoginEl = document.getElementById('error-login');
+
+function pintarPuntos() {
+  puntosEl.innerHTML = '';
+  for (let i = 0; i < 4; i++) {
+    const p = document.createElement('div');
+    p.className = 'pin-punto' + (i < estado.pin.length ? ' lleno' : '');
+    puntosEl.appendChild(p);
+  }
+}
+
+function construirTeclado() {
+  const teclas = ['1','2','3','4','5','6','7','8','9','','0','⌫'];
+  tecladoEl.innerHTML = '';
+  teclas.forEach((t) => {
+    const b = document.createElement('div');
+    b.className = 'tecla' + (t === '' ? ' vacia' : '');
+    b.textContent = t;
+    if (t !== '') {
+      b.addEventListener('click', () => manejarTecla(t));
+    }
+    tecladoEl.appendChild(b);
+  });
+}
+
+async function manejarTecla(t) {
+  errorLoginEl.textContent = '';
+  if (t === '⌫') {
+    estado.pin = estado.pin.slice(0, -1);
+    pintarPuntos();
+    return;
+  }
+  if (estado.pin.length < 4) {
+    estado.pin += t;
+    pintarPuntos();
+  }
+  if (estado.pin.length === 4) {
+    const res = await apiPost({ action: 'login', pin: estado.pin }).catch(() => ({ ok: false, error: 'Sin conexión con el servidor.' }));
+    if (res.ok) {
+      estado.token = res.token;
+      localStorage.setItem('fg_token', res.token);
+      mostrarApp();
+    } else {
+      errorLoginEl.textContent = res.error || 'PIN incorrecto';
+      estado.pin = '';
+      pintarPuntos();
+    }
+  }
+}
+
+construirTeclado();
+pintarPuntos();
+
+document.getElementById('btn-salir').addEventListener('click', () => {
+  localStorage.removeItem('fg_token');
+  location.reload();
+});
+
+function mostrarApp() {
+  document.getElementById('pantalla-login').style.display = 'none';
+  document.getElementById('pantalla-app').style.display = 'block';
+  inicializarApp();
+}
+
+if (localStorage.getItem('fg_token')) {
+  estado.token = localStorage.getItem('fg_token');
+  mostrarApp();
+}
+
+/* ==========================================================================
+   NAVEGACIÓN ENTRE PESTAÑAS
+   ========================================================================== */
+document.querySelectorAll('nav.tabs button').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('nav.tabs button').forEach((b) => b.classList.remove('activa'));
+    document.querySelectorAll('.vista').forEach((v) => v.classList.remove('activa'));
+    btn.classList.add('activa');
+    document.getElementById('vista-' + btn.dataset.vista).classList.add('activa');
+    if (btn.dataset.vista === 'abono') cargarFoliosParaAbono();
+    if (btn.dataset.vista === 'lista') cargarListaContratos();
+  });
+});
+
+/* ==========================================================================
+   INICIALIZACIÓN DE LA APP (después del login)
+   ========================================================================== */
+function inicializarApp() {
+  document.getElementById('c-fecha').value = hoyISO();
+  document.getElementById('a-fecha').value = hoyISO();
+  generarFolioNuevo();
+
+  document.querySelectorAll('.chip-modalidad').forEach((chip) => {
+    chip.addEventListener('click', () => seleccionarModalidad(chip.dataset.modalidad));
+  });
+  document.querySelectorAll('.chip-plazo').forEach((chip) => {
+    chip.addEventListener('click', () => seleccionarPlazo(chip.dataset.plazo));
+  });
+
+  document.getElementById('btn-nuevo-folio').addEventListener('click', generarFolioNuevo);
+  document.getElementById('c-enganche-pct').addEventListener('input', recalcularDesdePorcentaje);
+  document.getElementById('c-enganche-monto').addEventListener('input', recalcularDesdeMonto);
+
+  document.getElementById('btn-guardar-contrato').addEventListener('click', guardarContrato);
+  document.getElementById('btn-descargar-pdf').addEventListener('click', () => generarPDF(true));
+  document.getElementById('btn-enviar-whatsapp').addEventListener('click', enviarPorWhatsApp);
+
+  document.getElementById('btn-refrescar-folios').addEventListener('click', cargarFoliosParaAbono);
+  document.getElementById('a-buscar-folio').addEventListener('change', mostrarFichaAbono);
+  document.getElementById('btn-guardar-abono').addEventListener('click', guardarAbono);
+
+  document.getElementById('btn-refrescar-lista').addEventListener('click', cargarListaContratos);
+  document.getElementById('l-buscar').addEventListener('input', filtrarListaContratos);
+
+  seleccionarModalidad('Cremación');
+}
+
+async function generarFolioNuevo() {
+  document.getElementById('c-folio').value = 'Generando…';
+  const res = await apiGet({ action: 'generarFolio', modalidad: 'PREV' }).catch(() => null);
+  if (res && res.ok) {
+    document.getElementById('c-folio').value = res.folio;
+    document.getElementById('folio-vivo').textContent = 'Folio actual: ' + res.folio;
+  } else {
+    document.getElementById('c-folio').value = 'FG-PREV-' + new Date().getFullYear() + '-000';
+  }
+}
+
+/* ==========================================================================
+   MODALIDAD Y PAQUETES
+   ========================================================================== */
+function seleccionarModalidad(modalidad) {
+  estado.modalidad = modalidad;
+  estado.paquete = null;
+  document.querySelectorAll('.chip-modalidad').forEach((c) => c.classList.toggle('activa', c.dataset.modalidad === modalidad));
+
+  const cont = document.getElementById('contenedor-paquetes');
+  cont.innerHTML = '';
+  const planes = CONFIG.PLANES[modalidad] || [];
+  const avisoEl = document.getElementById('aviso-paquetes-placeholder');
+  avisoEl.textContent = modalidad === 'Inhumación'
+    ? '⚠️ Los nombres y precios de estos 3 paquetes son de ejemplo — edítalos en el bloque CONFIG.PLANES del archivo index.html con los datos reales.'
+    : '';
+
+  planes.forEach((plan, idx) => {
+    const div = document.createElement('div');
+    div.className = 'paquete';
+    div.innerHTML = `
+      <div class="nombre">${plan.nombre}</div>
+      <div class="precio">${mxn(plan.precio)}</div>
+      <ul>${plan.incluye.map((i) => `<li>${i}</li>`).join('')}</ul>
+    `;
+    div.addEventListener('click', () => seleccionarPaquete(plan));
+    cont.appendChild(div);
+    if (idx === 0) seleccionarPaquete(plan); // preselecciona el primero
+  });
+}
+
+function seleccionarPaquete(plan) {
+  estado.paquete = plan;
+  document.querySelectorAll('#contenedor-paquetes .paquete').forEach((el) => el.classList.remove('activa'));
+  const idx = (CONFIG.PLANES[estado.modalidad] || []).indexOf(plan);
+  const nodos = document.querySelectorAll('#contenedor-paquetes .paquete');
+  if (nodos[idx]) nodos[idx].classList.add('activa');
+  document.getElementById('c-precio-total').value = mxn(plan.precio);
+  recalcularDesdePorcentaje();
+}
+
+/* ==========================================================================
+   CÁLCULO DE ENGANCHE, SALDO Y PAGOS
+   ========================================================================== */
+function totalActual() {
+  return estado.paquete ? estado.paquete.precio : 0;
+}
+
+function recalcularDesdePorcentaje() {
+  const total = totalActual();
+  const pct = parseFloat(document.getElementById('c-enganche-pct').value) || 0;
+  const monto = Math.round((total * pct / 100) * 100) / 100;
+  document.getElementById('c-enganche-monto').value = monto;
+  actualizarResumen();
+}
+
+function recalcularDesdeMonto() {
+  const total = totalActual();
+  const monto = parseFloat(document.getElementById('c-enganche-monto').value) || 0;
+  const pct = total > 0 ? Math.round((monto / total) * 10000) / 100 : 0;
+  document.getElementById('c-enganche-pct').value = pct;
+  actualizarResumen();
+}
+
+function seleccionarPlazo(plazo) {
+  estado.plazo = plazo;
+  document.querySelectorAll('.chip-plazo').forEach((c) => c.classList.toggle('activa', c.dataset.plazo === plazo));
+  actualizarResumen();
+}
+
+function actualizarResumen() {
+  const total = totalActual();
+  const monto = parseFloat(document.getElementById('c-enganche-monto').value) || 0;
+  const saldo = Math.max(0, total - monto);
+  document.getElementById('r-saldo').textContent = mxn(saldo);
+  document.getElementById('r-total').textContent = mxn(total);
+
+  if (estado.plazo) {
+    const p = CONFIG.PLAZOS[estado.plazo];
+    const montoPago = p.n > 0 ? Math.round((saldo / p.n) * 100) / 100 : 0;
+    document.getElementById('r-plazo-label').textContent = `Monto por pago (${p.label})`;
+    document.getElementById('r-monto-pago').textContent = mxn(montoPago);
+  } else {
+    document.getElementById('r-plazo-label').textContent = 'Selecciona un plazo';
+    document.getElementById('r-monto-pago').textContent = '—';
+  }
+}
+
+/* ==========================================================================
+   GUARDAR CONTRATO
+   ========================================================================== */
+function recolectarContrato() {
+  if (!estado.paquete) return { error: 'Selecciona un paquete.' };
+  if (!estado.plazo) return { error: 'Selecciona un plazo de pago (mensual o quincenal).' };
+  const nombre = document.getElementById('c-nombre').value.trim();
+  const telefono = document.getElementById('c-telefono').value.trim();
+  if (!nombre) return { error: 'Captura el nombre del contratante.' };
+  if (!telefono) return { error: 'Captura el número de contacto del contratante.' };
+
+  const total = totalActual();
+  const enganche = parseFloat(document.getElementById('c-enganche-monto').value) || 0;
+  const saldo = Math.max(0, total - enganche);
+  const p = CONFIG.PLAZOS[estado.plazo];
+  const montoPorPago = p.n > 0 ? Math.round((saldo / p.n) * 100) / 100 : 0;
+  const benefNombre = document.getElementById('c-benef-nombre').value.trim();
+  const benefParentesco = document.getElementById('c-benef-parentesco').value.trim();
+
+  return {
+    folio: document.getElementById('c-folio').value,
+    fecha: document.getElementById('c-fecha').value,
+    nombre, telefono,
+    domicilio: document.getElementById('c-domicilio').value.trim(),
+    correo: document.getElementById('c-correo').value.trim(),
+    beneficiario: benefNombre + (benefParentesco ? ` (${benefParentesco})` : ''),
+    modalidad: estado.modalidad,
+    paquete: estado.paquete.nombre,
+    precioTotal: total,
+    enganche,
+    saldoPendiente: saldo,
+    plazoLabel: p.label,
+    numeroPagos: p.n,
+    montoPorPago,
+    metodoEngancheInicial: document.getElementById('c-metodo-enganche').value
+  };
+}
+
+async function guardarContrato() {
+  const msg = document.getElementById('msg-nuevo');
+  const c = recolectarContrato();
+  if (c.error) { msg.className = 'mensaje-estado error'; msg.textContent = c.error; return; }
+
+  msg.className = 'mensaje-estado'; msg.textContent = 'Guardando…';
+  const res = await apiPost({ action: 'guardarContrato', contrato: c }).catch(() => ({ ok: false, error: 'Sin conexión con el servidor.' }));
+  if (res.ok) {
+    msg.className = 'mensaje-estado ok';
+    msg.textContent = `Contrato ${res.folio} guardado correctamente.`;
+  } else {
+    msg.className = 'mensaje-estado error';
+    msg.textContent = res.error || 'No se pudo guardar el contrato.';
+  }
+}
+
+/* ==========================================================================
+   GENERAR PDF (tamaño oficio) — replica la estructura del contrato Word
+   ========================================================================== */
+function generarPDF(descargar) {
+  const c = recolectarContrato();
+  if (c.error) {
+    const msg = document.getElementById('msg-nuevo');
+    msg.className = 'mensaje-estado error'; msg.textContent = c.error;
+    return null;
+  }
+
+  const { jsPDF } = window.jspdf;
+  // Oficio ≈ 216 x 340 mm
+  const doc = new jsPDF({ unit: 'mm', format: [216, 340] });
+  const ML = 18, MR = 18;
+  const anchoUtil = 216 - ML - MR;
+  let y = 20;
+
+  const linea = (texto, opts = {}) => {
+    const tam = opts.tam || 10;
+    const negrita = opts.negrita ? 'bold' : 'normal';
+    doc.setFont('helvetica', negrita);
+    doc.setFontSize(tam);
+    const partes = doc.splitTextToSize(texto, anchoUtil);
+    partes.forEach((p) => {
+      if (y > 320) { doc.addPage([216, 340], 'p'); y = 20; }
+      doc.text(p, ML, y);
+      y += (tam / 2.2);
+    });
+    y += 2;
+  };
+
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(14);
+  doc.text(CONFIG.EMPRESA.nombre, ML, y); y += 7;
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(12);
+  doc.text('CONTRATO DE PRESTACIÓN DE SERVICIOS FUNERARIOS A PREVISIÓN', ML, y); y += 6;
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
+  doc.text(`Folio de contrato: ${c.folio}      Fecha de registro: ${fechaLegible(c.fecha)}`, ML, y); y += 10;
+
+  linea(`Contrato de Prestación de Servicios Funerarios de ${c.modalidad} a Previsión que celebran, por una parte, ${CONFIG.EMPRESA.nombre} (en lo sucesivo "EL PRESTADOR"), y por otra parte el/la C. ${c.nombre.toUpperCase()} (en lo sucesivo "EL CLIENTE"), al tenor de las siguientes Declaraciones y Cláusulas:`);
+
+  linea('I. DECLARACIONES', { negrita: true, tam: 11 });
+  linea(`1. DECLARA "EL PRESTADOR" (${CONFIG.EMPRESA.nombre}):`, { negrita: true });
+  linea(`a) Ser una empresa formalmente establecida con plena capacidad legal, técnica y operativa para la prestación de servicios funerarios integrales.`);
+  linea(`b) Tener su domicilio principal ubicado en: ${CONFIG.EMPRESA.domicilio}`);
+  linea(`c) Contar con la infraestructura, personal capacitado y vehículos necesarios para brindar el servicio pactado.`);
+
+  linea('2. DECLARA "EL CLIENTE":', { negrita: true });
+  linea(`a) Ser persona física, mayor de edad, con plena capacidad jurídica para contratar y obligarse en los términos del presente instrumento.`);
+  linea(`b) Con domicilio en: ${c.domicilio || '____________________________'}`);
+  linea(`c) Teléfono de contacto: ${c.telefono}   |   Correo electrónico: ${c.correo || '____________________________'}`);
+  linea(`d) Que designa como Beneficiario(s) preferente(s) al C. ${(c.beneficiario || '____________________________').toUpperCase()}`);
+
+  linea(`II. DESGLOSE DEL SERVICIO DE ${c.modalidad.toUpperCase()} Y ESTRUCTURA DE PAGO (${c.plazoLabel.toUpperCase()})`, { negrita: true, tam: 11 });
+  linea(`Concepto del servicio funerario: ${c.paquete}`);
+  linea(`Precio total del servicio a previsión (costo base): ${mxn(c.precioTotal)}`, { negrita: true });
+  linea(`Pago inicial / enganche: ${mxn(c.enganche)}`, { negrita: true });
+  linea(`Saldo financiado: ${mxn(c.saldoPendiente)}`, { negrita: true });
+  linea(`Estructura de financiamiento: ${c.numeroPagos} pagos de ${mxn(c.montoPorPago)} cada uno.`, { negrita: true });
+
+  linea('III. CLÁUSULAS', { negrita: true, tam: 11 });
+  linea('PRIMERA. OBJETO DEL CONTRATO Y SERVICIOS INCLUIDOS.', { negrita: true });
+  linea(`EL PRESTADOR se obliga a proporcionar a EL CLIENTE o a sus beneficiarios designados el servicio de ${c.modalidad} a Previsión contratado bajo el plan "${c.paquete}", el cual incluye de manera exclusiva y numerada los conceptos detallados en el plan seleccionado, mismos que fueron mostrados y aceptados por EL CLIENTE al momento de la firma.`);
+
+  linea('SEGUNDA. PRECIO Y ESTRUCTURA DE PAGO.', { negrita: true });
+  linea(`El precio total convenido por el servicio es de ${mxn(c.precioTotal)}. EL CLIENTE se obliga a liquidar dicho monto mediante un pago inicial de ${mxn(c.enganche)} a la firma del presente contrato, y el saldo restante de ${mxn(c.saldoPendiente)} financiado en ${c.numeroPagos} pagos fijos y consecutivos de ${mxn(c.montoPorPago)} cada uno, sin que se otorgue plazo adicional al aquí pactado.`);
+
+  linea('TERCERA. CUOTA ANUAL POR CONCEPTO DE INFLACIÓN.', { negrita: true });
+  linea(`A partir del segundo año contado desde la firma, EL CLIENTE o sus beneficiarios cubrirán un pago único anual de $500.00 MXN por concepto de mantenimiento de tarifa e inflación acumulada, manteniendo vigente y congelado el contrato hasta requerir el servicio.`);
+
+  linea('CUARTA. TRASLADOS FORÁNEOS Y COBERTURA GEOGRÁFICA.', { negrita: true });
+  linea(`El servicio de recolección incluido aplica únicamente dentro de la zona urbana de Xalapa, Veracruz. Fuera de esta jurisdicción se generará un costo adicional por kilometraje y logística, a convenir al momento de solicitar el servicio.`);
+
+  linea('QUINTA. USO DEL SERVICIO Y SALDOS REMANENTES.', { negrita: true });
+  linea(`El presente plan de previsión es transferible a la persona que EL CLIENTE designe expresamente. Si se requiere el servicio antes de concluir los pagos pactados, los beneficiarios deberán cubrir el saldo remanente al momento de solicitar el servicio.`);
+
+  linea('SEXTA. CLÁUSULA DE EQUIVALENCIA Y SUSTITUCIÓN DE INSUMOS.', { negrita: true });
+  linea(`Si al requerir el servicio los insumos contratados estuviesen descontinuados, EL PRESTADOR entregará un insumo sustituto de calidad equivalente o superior, sin costo adicional para EL CLIENTE.`);
+
+  linea('SÉPTIMA. SERVICIOS ADICIONALES NO INCLUIDOS.', { negrita: true });
+  linea(`Cualquier requerimiento no especificado en la Cláusula Primera se cotizará y cobrará de manera independiente a precio de lista vigente al momento del evento.`);
+
+  linea('OCTAVA. CANCELACIÓN Y DEVOLUCIONES.', { negrita: true });
+  linea(`En caso de cancelación voluntaria por parte de EL CLIENTE, EL PRESTADOR reintegrará los importes abonados previa deducción del ${CONFIG.DEDUCCION_CANCELACION_PCT}% por concepto de gastos administrativos y costo de apertura del contrato.`);
+
+  linea('NOVENA. JURISDICCIÓN Y COMPETENCIA.', { negrita: true });
+  linea(`Para la interpretación y cumplimiento del presente contrato, las partes se someten a la jurisdicción de las leyes y tribunales competentes de la ciudad de Xalapa, Veracruz.`);
+
+  y += 12;
+  if (y > 300) { doc.addPage([216, 340], 'p'); y = 30; }
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
+  doc.text('_____________________________', ML, y);
+  doc.text('_____________________________', 216 - MR - 70, y);
+  y += 5;
+  doc.text('EL PRESTADOR DE SERVICIOS', ML, y);
+  doc.text('EL CLIENTE / TITULAR', 216 - MR - 70, y);
+  y += 5;
+  doc.text(CONFIG.EMPRESA.nombre, ML, y);
+  doc.text('Nombre y firma de conformidad', 216 - MR - 70, y);
+
+  if (descargar) doc.save(`${c.folio}.pdf`);
+  return doc;
+}
+
+/* ==========================================================================
+   ENVIAR POR WHATSAPP
+   ========================================================================== */
+async function enviarPorWhatsApp() {
+  const msg = document.getElementById('msg-nuevo');
+  const c = recolectarContrato();
+  if (c.error) { msg.className = 'mensaje-estado error'; msg.textContent = c.error; return; }
+
+  const doc = generarPDF(false);
+  if (!doc) return;
+
+  const telLimpio = c.telefono.replace(/\D/g, '');
+  const texto = `Hola ${c.nombre}, le compartimos su contrato de previsión ${c.folio} con ${CONFIG.EMPRESA.nombre}. Plan: ${c.paquete}. Total: ${mxn(c.precioTotal)}. Enganche: ${mxn(c.enganche)}. Los pagos se realizan de forma presencial en nuestras oficinas: efectivo, tarjeta o transferencia.`;
+
+  // Intento 1: compartir el PDF real (funciona en navegadores móviles compatibles con Web Share API nivel 2)
+  try {
+    const blob = doc.output('blob');
+    const archivo = new File([blob], `${c.folio}.pdf`, { type: 'application/pdf' });
+    if (navigator.canShare && navigator.canShare({ files: [archivo] })) {
+      await navigator.share({ files: [archivo], text: texto, title: `Contrato ${c.folio}` });
+      msg.className = 'mensaje-estado ok';
+      msg.textContent = 'Selecciona WhatsApp en el menú de compartir para enviar el PDF.';
+      return;
+    }
+  } catch (e) { /* si el usuario cancela el share, seguimos con el respaldo */ }
+
+  // Respaldo: abre WhatsApp con el mensaje ya redactado hacia el número del contratante.
+  // Nota: wa.me no permite adjuntar archivos automáticamente — descarga el PDF y adjúntalo manualmente.
+  doc.save(`${c.folio}.pdf`);
+  window.open(`https://wa.me/52${telLimpio}?text=${encodeURIComponent(texto)}`, '_blank');
+  msg.className = 'mensaje-estado ok';
+  msg.textContent = 'Se descargó el PDF y se abrió WhatsApp — adjunta el archivo descargado al chat.';
+}
+
+/* ==========================================================================
+   REGISTRAR ABONO
+   ========================================================================== */
+async function cargarFoliosParaAbono() {
+  const res = await apiGet({ action: 'listarContratos' }).catch(() => null);
+  if (res && res.ok) {
+    estado.contratosCache = res.data;
+    const dl = document.getElementById('lista-folios');
+    dl.innerHTML = res.data.map((c) => `<option value="${c.folio}">${c.nombre}</option>`).join('');
+  }
+}
+
+function mostrarFichaAbono() {
+  const folio = document.getElementById('a-buscar-folio').value.trim();
+  const c = estado.contratosCache.find((x) => String(x.folio) === folio);
+  const ficha = document.getElementById('ficha-abono');
+  if (!c) { ficha.style.display = 'none'; return; }
+  ficha.style.display = 'block';
+  document.getElementById('fa-nombre').textContent = c.nombre;
+  document.getElementById('fa-paquete').textContent = `${c.modalidad} — ${c.paquete}`;
+  document.getElementById('fa-saldo').textContent = mxn(c.saldoPendiente);
+  document.getElementById('fa-estatus').textContent = c.estatus;
+}
+
+async function guardarAbono() {
+  const msg = document.getElementById('msg-abono');
+  const folio = document.getElementById('a-buscar-folio').value.trim();
+  const c = estado.contratosCache.find((x) => String(x.folio) === folio);
+  const monto = parseFloat(document.getElementById('a-monto').value) || 0;
+
+  if (!c) { msg.className = 'mensaje-estado error'; msg.textContent = 'Selecciona un folio válido.'; return; }
+  if (monto <= 0) { msg.className = 'mensaje-estado error'; msg.textContent = 'Captura un monto de abono válido.'; return; }
+
+  msg.className = 'mensaje-estado'; msg.textContent = 'Guardando…';
+  const res = await apiPost({
+    action: 'guardarAbono',
+    abono: {
+      folio,
+      nombre: c.nombre,
+      fecha: document.getElementById('a-fecha').value,
+      monto,
+      metodo: document.getElementById('a-metodo').value
+    }
+  }).catch(() => ({ ok: false, error: 'Sin conexión con el servidor.' }));
+
+  if (res.ok) {
+    msg.className = 'mensaje-estado ok';
+    msg.textContent = `Abono guardado. Nuevo saldo pendiente: ${mxn(res.saldoPendiente)}.`;
+    document.getElementById('a-monto').value = '';
+    cargarFoliosParaAbono();
+  } else {
+    msg.className = 'mensaje-estado error';
+    msg.textContent = res.error || 'No se pudo guardar el abono.';
+  }
+}
+
+/* ==========================================================================
+   LISTA DE CONTRATOS
+   ========================================================================== */
+async function cargarListaContratos() {
+  const msg = document.getElementById('msg-lista');
+  msg.textContent = 'Cargando…'; msg.className = 'mensaje-estado';
+  const res = await apiGet({ action: 'listarContratos' }).catch(() => null);
+  if (res && res.ok) {
+    estado.contratosCache = res.data;
+    pintarTablaContratos(res.data);
+    msg.textContent = '';
+  } else {
+    msg.className = 'mensaje-estado error';
+    msg.textContent = 'No se pudo conectar con el servidor. Revisa CONFIG.APPS_SCRIPT_URL.';
+  }
+}
+
+function pintarTablaContratos(lista) {
+  const tbody = document.querySelector('#tabla-contratos tbody');
+  tbody.innerHTML = lista.map((c) => `
+    <tr>
+      <td>${c.folio}</td>
+      <td>${c.nombre}</td>
+      <td>${c.modalidad}<br><small>${c.paquete}</small></td>
+      <td>${mxn(c.precioTotal)}</td>
+      <td>${mxn(c.saldoPendiente)}</td>
+      <td><span class="badge ${c.estatus}">${c.estatus}</span></td>
+    </tr>
+  `).join('');
+}
+
+function filtrarListaContratos() {
+  const q = document.getElementById('l-buscar').value.toLowerCase();
+  const filtrada = estado.contratosCache.filter((c) =>
+    String(c.folio).toLowerCase().includes(q) || String(c.nombre).toLowerCase().includes(q)
+  );
+  pintarTablaContratos(filtrada);
+}
+
+/* ==========================================================================
+   REGISTRO DEL SERVICE WORKER (instalación como app / PWA)
+   ========================================================================== */
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('service-worker.js').catch(() => {});
+  });
+}
+</script>
+</body>
+</html>
