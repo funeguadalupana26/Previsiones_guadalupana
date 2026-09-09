@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
 :root{
   --tinta:#1b2621;
@@ -907,12 +907,6 @@ function generarPDF(descargar) {
     msg.className = 'mensaje-estado error'; msg.textContent = c.error;
     return null;
   }
-  if (!window.jspdf) {
-    const msg = document.getElementById('msg-nuevo');
-    msg.className = 'mensaje-estado error';
-    msg.textContent = 'No se pudo cargar el generador de PDF (revisa tu conexión a internet) — intenta de nuevo en unos segundos.';
-    return null;
-  }
 
   const { jsPDF } = window.jspdf;
   // Oficio ≈ 216 x 340 mm — diseño compacto, centrado y justificado para que
@@ -1159,12 +1153,6 @@ async function guardarAbono() {
 function generarReciboPDF() {
   const a = estado.ultimoAbono;
   if (!a) return;
-  if (!window.jspdf) {
-    const msg = document.getElementById('msg-abono');
-    msg.className = 'mensaje-estado error';
-    msg.textContent = 'No se pudo cargar el generador de PDF (revisa tu conexión a internet) — intenta de nuevo en unos segundos.';
-    return;
-  }
 
   const { jsPDF } = window.jspdf;
   // A5 vertical: tamaño natural de un recibo/comprobante, no una hoja completa.
