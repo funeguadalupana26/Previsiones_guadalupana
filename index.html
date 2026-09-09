@@ -607,8 +607,7 @@ async function manejarTecla(t) {
   if (estado.pin.length === 4) {
     const res = await apiPost({ action: 'login', pin: estado.pin }).catch(() => ({ ok: false, error: 'Sin conexión con el servidor.' }));
     if (res.ok) {
-      estado.token = res.token;
-      localStorage.setItem('fg_token', res.token);
+      estado.token = res.token; // solo en memoria: al cerrar/reabrir la app siempre se vuelve a pedir el PIN
       mostrarApp();
     } else {
       errorLoginEl.textContent = res.error || 'PIN incorrecto';
@@ -620,9 +619,9 @@ async function manejarTecla(t) {
 
 construirTeclado();
 pintarPuntos();
+localStorage.removeItem('fg_token'); // limpia cualquier sesión guardada de la versión anterior
 
 document.getElementById('btn-salir').addEventListener('click', () => {
-  localStorage.removeItem('fg_token');
   location.reload();
 });
 
@@ -630,11 +629,6 @@ function mostrarApp() {
   document.getElementById('pantalla-login').style.display = 'none';
   document.getElementById('pantalla-app').style.display = 'block';
   inicializarApp();
-}
-
-if (localStorage.getItem('fg_token')) {
-  estado.token = localStorage.getItem('fg_token');
-  mostrarApp();
 }
 
 /* ==========================================================================
