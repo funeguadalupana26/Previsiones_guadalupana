@@ -191,9 +191,32 @@ table.lista tr:last-child td{border-bottom:none;}
 @media (min-width:720px){
   .fila.centrado{align-items:flex-end;}
 }
+/* Aviso de "gira tu dispositivo": respaldo universal (funciona incluso donde
+   la API de bloqueo de orientación no existe, como en iPhone/Safari). Solo
+   se activa en pantallas angostas tipo celular, no en tablets/desktop. */
+#aviso-girar{display:none;}
+@media (orientation: landscape) and (max-height: 500px) {
+  #aviso-girar{
+    display:flex;position:fixed;inset:0;z-index:9999;background:var(--tinta);
+    color:var(--pergamino);flex-direction:column;align-items:center;justify-content:center;
+    text-align:center;padding:24px;gap:14px;
+  }
+  #aviso-girar svg{width:56px;height:56px;}
+  #aviso-girar h2{font-family:'Source Serif 4',serif;font-size:1.2rem;margin:0;}
+  #aviso-girar p{font-size:.85rem;color:var(--bronce-suave);max-width:280px;margin:0;}
+  body > *:not(#aviso-girar){display:none !important;}
+}
 </style>
 </head>
 <body>
+<div id="aviso-girar">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+    <rect x="6" y="2" width="12" height="20" rx="2" transform="rotate(90 12 12)"></rect>
+    <line x1="12" y1="18" x2="12.01" y2="18"></line>
+  </svg>
+  <h2>Gira tu dispositivo</h2>
+  <p>Esta app está diseñada para usarse en posición vertical. Por favor gira tu celular para continuar.</p>
+</div>
 
 <!-- ================= LOGIN ================= -->
 <section id="pantalla-login">
@@ -355,6 +378,7 @@ table.lista tr:last-child td{border-bottom:none;}
         </div>
         <div class="botonera">
           <button class="btn btn-primario" id="btn-guardar-abono" type="button">Guardar abono</button>
+          <button class="btn btn-secundario" id="btn-recibo-abono" type="button" style="display:none;">📄 Descargar recibo</button>
         </div>
         <p class="mensaje-estado" id="msg-abono"></p>
       </div>
@@ -387,7 +411,7 @@ table.lista tr:last-child td{border-bottom:none;}
    ========================================================================== */
 const CONFIG = {
   // Pega aquí la URL "/exec" que te da Apps Script al publicar el backend.
-  APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbzXkW49Y9vRFnuB9sG5I_8br5Dh1z-E-spyC_PrhswtjyyTJiFIdCZXJwj1tk7g9oDn/exec',
+  APPS_SCRIPT_URL: 'PEGA_AQUI_TU_URL_DE_APPS_SCRIPT',
 
   EMPRESA: {
     nombre: 'FUNERALES GUADALUPANA',
@@ -509,6 +533,7 @@ const estado = {
   paquete: null,
   plazo: null,
   productosAdicionales: [], // conceptos y costos del paquete Platino/personalizable (única fuente del precio)
+  ultimoAbono: null, // datos del último abono guardado, para generar su recibo
   contratosCache: []
 };
 
@@ -653,6 +678,7 @@ function inicializarApp() {
   document.getElementById('btn-refrescar-folios').addEventListener('click', cargarFoliosParaAbono);
   document.getElementById('a-buscar-folio').addEventListener('change', mostrarFichaAbono);
   document.getElementById('btn-guardar-abono').addEventListener('click', guardarAbono);
+  document.getElementById('btn-recibo-abono').addEventListener('click', generarReciboPDF);
 
   document.getElementById('btn-refrescar-lista').addEventListener('click', cargarListaContratos);
   document.getElementById('l-buscar').addEventListener('input', filtrarListaContratos);
@@ -1075,6 +1101,7 @@ async function cargarFoliosParaAbono() {
 }
 
 function mostrarFichaAbono() {
+  document.getElementById('btn-recibo-abono').style.display = 'none';
   const folio = document.getElementById('a-buscar-folio').value.trim();
   const c = estado.contratosCache.find((x) => String(x.folio) === folio);
   const ficha = document.getElementById('ficha-abono');
@@ -1088,9 +1115,13 @@ function mostrarFichaAbono() {
 
 async function guardarAbono() {
   const msg = document.getElementById('msg-abono');
+  const btnRecibo = document.getElementById('btn-recibo-abono');
+  btnRecibo.style.display = 'none';
   const folio = document.getElementById('a-buscar-folio').value.trim();
   const c = estado.contratosCache.find((x) => String(x.folio) === folio);
   const monto = parseFloat(document.getElementById('a-monto').value) || 0;
+  const fecha = document.getElementById('a-fecha').value;
+  const metodo = document.getElementById('a-metodo').value;
 
   if (!c) { msg.className = 'mensaje-estado error'; msg.textContent = 'Selecciona un folio válido.'; return; }
   if (monto <= 0) { msg.className = 'mensaje-estado error'; msg.textContent = 'Captura un monto de abono válido.'; return; }
@@ -1098,24 +1129,107 @@ async function guardarAbono() {
   msg.className = 'mensaje-estado'; msg.textContent = 'Guardando…';
   const res = await apiPost({
     action: 'guardarAbono',
-    abono: {
-      folio,
-      nombre: c.nombre,
-      fecha: document.getElementById('a-fecha').value,
-      monto,
-      metodo: document.getElementById('a-metodo').value
-    }
+    abono: { folio, nombre: c.nombre, fecha, monto, metodo }
   }).catch(() => ({ ok: false, error: 'Sin conexión con el servidor.' }));
 
   if (res.ok) {
     msg.className = 'mensaje-estado ok';
     msg.textContent = `Abono guardado. Nuevo saldo pendiente: ${mxn(res.saldoPendiente)}.`;
+    estado.ultimoAbono = {
+      folio,
+      nombre: c.nombre,
+      modalidad: c.modalidad,
+      paquete: c.paquete,
+      fecha,
+      monto,
+      metodo,
+      saldoAnterior: c.saldoPendiente,
+      saldoRestante: res.saldoPendiente
+    };
+    btnRecibo.style.display = 'inline-block';
     document.getElementById('a-monto').value = '';
     cargarFoliosParaAbono();
   } else {
     msg.className = 'mensaje-estado error';
     msg.textContent = res.error || 'No se pudo guardar el abono.';
   }
+}
+
+/** Genera el PDF del recibo del último abono guardado. */
+function generarReciboPDF() {
+  const a = estado.ultimoAbono;
+  if (!a) return;
+
+  const { jsPDF } = window.jspdf;
+  // A5 vertical: tamaño natural de un recibo/comprobante, no una hoja completa.
+  const doc = new jsPDF({ unit: 'mm', format: 'a5' });
+  const anchoPag = 148, altoPag = 210;
+  const ML = 12, MR = 12;
+  const anchoUtil = anchoPag - ML - MR;
+  const centro = anchoPag / 2;
+  let y = 12;
+
+  const logoW = 16, logoH = 16 * (219 / 300);
+  doc.addImage(LOGO_BASE64, 'PNG', centro - logoW / 2, y, logoW, logoH);
+  y += logoH + 4;
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(11);
+  doc.text(CONFIG.EMPRESA.nombre, centro, y, { align: 'center' }); y += 5;
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(9);
+  doc.text('RECIBO DE PAGO — CONTRATO A PREVISIÓN', centro, y, { align: 'center' }); y += 5.5;
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(10);
+  doc.setTextColor(180, 0, 0);
+  doc.text(`Folio: ${a.folio}`, centro, y, { align: 'center' });
+  doc.setTextColor(0, 0, 0);
+  y += 5;
+  doc.setDrawColor(150); doc.setLineWidth(0.3);
+  doc.line(ML, y, anchoPag - MR, y);
+  y += 7;
+
+  const dato = (etiqueta, valor, opts = {}) => {
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
+    doc.text(etiqueta, ML, y);
+    doc.setFont('helvetica', opts.negrita === false ? 'normal' : 'bold'); doc.setFontSize(opts.tam || 9);
+    const texto = doc.splitTextToSize(String(valor), anchoUtil - 38);
+    doc.text(texto, ML + 40, y);
+    y += Math.max(5.5, texto.length * 4);
+  };
+
+  dato('Fecha del pago:', fechaLegible(a.fecha));
+  dato('Cliente:', a.nombre);
+  dato('Contrato:', `${a.modalidad} — ${a.paquete}`);
+  dato('Método de pago:', a.metodo);
+
+  y += 2;
+  doc.setDrawColor(200); doc.line(ML, y, anchoPag - MR, y); y += 7;
+
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
+  doc.text('Monto abonado:', ML, y);
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(13);
+  doc.text(mxn(a.monto), anchoPag - MR, y, { align: 'right' });
+  y += 8;
+
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5);
+  doc.text('Saldo pendiente anterior:', ML, y);
+  doc.text(mxn(a.saldoAnterior), anchoPag - MR, y, { align: 'right' });
+  y += 5;
+
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(10);
+  doc.text('Saldo restante para liquidar:', ML, y);
+  doc.text(mxn(a.saldoRestante), anchoPag - MR, y, { align: 'right' });
+  y += 10;
+
+  doc.setDrawColor(150); doc.line(ML, y, anchoPag - MR, y); y += 6;
+
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5);
+  const nota = doc.splitTextToSize('Este recibo ampara el pago arriba descrito dentro del plan de previsión funeraria contratado. Consérvelo como comprobante.', anchoUtil);
+  doc.text(nota, ML, y); y += nota.length * 3.6 + 10;
+
+  if (y < altoPag - 30) y = altoPag - 30;
+  doc.text('_____________________________', ML, y); y += 5;
+  doc.setFontSize(8);
+  doc.text('Recibí conforme / Firma de quien recibe', ML, y);
+
+  doc.save(`Recibo-${a.folio}-${a.fecha}.pdf`);
 }
 
 /* ==========================================================================
@@ -1165,6 +1279,30 @@ if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('service-worker.js').catch(() => {});
   });
 }
+
+/* ==========================================================================
+   FORZAR ORIENTACIÓN VERTICAL
+   ========================================================================== */
+// El manifest.json ya pide "orientation": "portrait-primary", pero algunos
+// dispositivos Android no lo respetan de forma confiable (sobre todo si la
+// app se instaló antes de que el manifest tuviera ese valor bien puesto —
+// en ese caso hay que desinstalar y volver a instalar la app una vez para
+// que tome el manifest actualizado). Como respaldo, forzamos el bloqueo
+// aquí también por código; si el navegador no soporta esta API, falla en
+// silencio y no rompe nada.
+function bloquearOrientacionVertical() {
+  try {
+    if (screen.orientation && screen.orientation.lock) {
+      screen.orientation.lock('portrait').catch(() => {});
+    }
+  } catch (err) { /* API no soportada en este navegador; se ignora */ }
+}
+bloquearOrientacionVertical();
+window.addEventListener('load', bloquearOrientacionVertical);
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) bloquearOrientacionVertical();
+});
+
 </script>
 </body>
 </html>
