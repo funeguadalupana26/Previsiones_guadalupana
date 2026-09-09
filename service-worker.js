@@ -1,22 +1,4 @@
-// Service worker mínimo: permite que la app sea instalable (PWA) y
-// deja el shell disponible sin conexión. Los datos siempre se sincronizan
-// en línea contra Google Sheets (Apps Script), esto solo cachea la interfaz.
-//
-// IMPORTANTE: cada vez que subas un index.html nuevo, sube TAMBIÉN este
-// archivo con el número de CACHE_NAME incrementado (v2, v3, ...). Así el
-// navegador detecta que el service worker cambió, borra la caché vieja y
-// vuelve a descargar la app actualizada. Si solo subes index.html sin
-// tocar este archivo, los celulares que ya instalaron la app seguirán
-// viendo la versión anterior indefinidamente.
 
-const CACHE_NAME = 'fg-previsión-v2';
-const ARCHIVOS = ['./', './index.html', './manifest.json', './logo.png'];
-
-self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(ARCHIVOS))
-  );
-  self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
@@ -32,18 +14,29 @@ self.addEventListener('fetch', (event) => {
   // Las llamadas a la API de Apps Script siempre van a la red (nunca a caché).
   if (event.request.url.includes('script.google.com')) return;
 
-  // El HTML principal: primero intenta la red (para traer cambios nuevos de
-  // inmediato); si no hay conexión, usa la copia guardada como respaldo.
+  // El HTML principal: si ya hay una copia guardada, la mostramos de
+  // inmediato y le damos máximo 2.5s a la red para traer una versión más
+  // nueva (así la app abre rápido incluso con conexión lenta). Si la red
+  // responde a tiempo, se usa esa y se actualiza la caché para la próxima
+  // vez. Si no hay copia guardada todavía (primera vez), sí esperamos a la
+  // red porque no hay nada más que mostrar.
   if (event.request.mode === 'navigate' || event.request.url.endsWith('index.html')) {
-    event.respondWith(
-      fetch(event.request)
-        .then((resp) => {
-          const copia = resp.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copia));
-          return resp;
-        })
-        .catch(() => caches.match(event.request))
-    );
+    event.respondWith((async () => {
+      const cache = await caches.open(CACHE_NAME);
+      const cachedResp = await cache.match(event.request);
+      const networkPromise = fetch(event.request)
+        .then((resp) => { cache.put(event.request, resp.clone()); return resp; })
+        .catch(() => null);
+
+      if (!cachedResp) {
+        const resp = await networkPromise;
+        return resp || new Response('Sin conexión y sin copia guardada todavía.', { status: 503 });
+      }
+
+      const espera = new Promise((resolve) => setTimeout(() => resolve(null), 2500));
+      const resp = await Promise.race([networkPromise, espera]);
+      return resp || cachedResp;
+    })());
     return;
   }
 
@@ -51,3 +44,4 @@ self.addEventListener('fetch', (event) => {
     caches.match(event.request).then((cached) => cached || fetch(event.request))
   );
 });
+
