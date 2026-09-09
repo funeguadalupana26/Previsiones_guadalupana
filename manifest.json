@@ -2,7 +2,7 @@
   "name": "Contratos a Previsión — Funerales Guadalupana",
   "short_name": "F. Guadalupana",
   "description": "Captura y control de contratos de servicios funerarios a previsión",
-  "start_url": "./index.html",
+  "start_url": "/index.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait-primary",
