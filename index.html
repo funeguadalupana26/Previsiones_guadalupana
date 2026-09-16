@@ -200,6 +200,13 @@ table.lista tr:last-child td{border-bottom:none;}
 .modal-caja{background:#fff;border-radius:var(--radio);max-width:480px;width:100%;max-height:90vh;overflow-y:auto;padding:22px;}
 .modal-caja h2{margin-top:0;font-size:1.05rem;}
 .modal-botonera{display:flex;gap:10px;justify-content:flex-end;margin-top:16px;flex-wrap:wrap;}
+
+.grupo-modalidad-admin h3{font-size:.85rem;color:var(--bronce-suave);text-transform:uppercase;letter-spacing:.04em;margin:18px 0 8px;}
+.paquete-admin{border:1px solid var(--linea);border-radius:var(--radio);padding:12px 14px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;}
+.paquete-admin .info .nombre{font-weight:700;}
+.paquete-admin .info .precio{color:var(--bronce-suave);font-weight:700;margin:2px 0;}
+.paquete-admin .info .conteo{font-size:.78rem;color:var(--tinta-suave);}
+.paquete-admin .acciones{display:flex;gap:6px;flex:none;}
 </style>
 </head>
 <body>
@@ -233,6 +240,7 @@ table.lista tr:last-child td{border-bottom:none;}
     <button data-vista="nuevo" class="activa">Nuevo contrato</button>
     <button data-vista="abono">Registrar abono</button>
     <button data-vista="lista">Contratos</button>
+    <button data-vista="paquetes">Paquetes</button>
   </nav>
 
   <main>
@@ -388,6 +396,16 @@ table.lista tr:last-child td{border-bottom:none;}
       </div>
     </div>
 
+    <div class="vista" id="vista-paquetes">
+      <div class="tarjeta">
+        <h2>Catálogo de paquetes</h2>
+        <p class="desc">Edita aquí el precio y los artículos que incluye cada paquete — se guarda directo en tu hoja de cálculo y se ve reflejado para todos en cuanto lo guardes.</p>
+        <button class="btn btn-primario" id="btn-nuevo-paquete" type="button">+ Agregar paquete nuevo</button>
+        <div id="lista-paquetes-admin" style="margin-top:16px;"></div>
+        <p class="mensaje-estado" id="msg-paquetes"></p>
+      </div>
+    </div>
+
   </main>
 </section>
 
@@ -435,13 +453,48 @@ table.lista tr:last-child td{border-bottom:none;}
   </div>
 </div>
 
+<div class="modal-overlay" id="modal-paquete">
+  <div class="modal-caja">
+    <h2 id="titulo-modal-paquete">Editar paquete</h2>
+    <div class="fila">
+      <div class="campo">
+        <label>Modalidad</label>
+        <select id="pq-modalidad"><option>Cremación</option><option>Inhumación</option></select>
+      </div>
+      <div class="campo">
+        <label>Nombre del paquete</label>
+        <input id="pq-nombre" placeholder="Ej. Paquete Bronce">
+      </div>
+    </div>
+    <div class="fila">
+      <div class="campo">
+        <label>Precio ($)</label>
+        <input id="pq-precio" type="number" min="0" step="0.01">
+      </div>
+      <div class="campo" style="display:flex;align-items:center;gap:8px;margin-top:22px;">
+        <input id="pq-personalizable" type="checkbox" style="width:auto;">
+        <label for="pq-personalizable" style="margin:0;">Es personalizable (como Platino — sin precio fijo)</label>
+      </div>
+    </div>
+    <div class="campo">
+      <label>Artículos que incluye (uno por línea)</label>
+      <textarea id="pq-incluye" rows="8" placeholder="Un artículo por renglón…"></textarea>
+    </div>
+    <p class="mensaje-estado" id="msg-paquete-modal"></p>
+    <div class="modal-botonera">
+      <button class="btn btn-secundario" id="btn-cancelar-paquete" type="button">Cancelar</button>
+      <button class="btn btn-primario" id="btn-guardar-paquete" type="button">Guardar paquete</button>
+    </div>
+  </div>
+</div>
+
 <script>
 /* ==========================================================================
    CONFIGURACIÓN — EDITA ESTOS VALORES ANTES DE PUBLICAR
    ========================================================================== */
 const CONFIG = {
   // Pega aquí la URL "/exec" que te da Apps Script al publicar el backend.
-  APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbzXkW49Y9vRFnuB9sG5I_8br5Dh1z-E-spyC_PrhswtjyyTJiFIdCZXJwj1tk7g9oDn/exec',
+  APPS_SCRIPT_URL:'https://script.google.com/macros/s/AKfycbzXkW49Y9vRFnuB9sG5I_8br5Dh1z-E-spyC_PrhswtjyyTJiFIdCZXJwj1tk7g9oDn/exec',
 
   EMPRESA: {
     nombre: 'FUNERALES GUADALUPANA',
@@ -461,7 +514,7 @@ const CONFIG = {
   PLANES: {
     'Cremación': [
       {
-        id: 'cremacion-previsión',
+        id: 'cremacion-prevision',
         nombre: 'Servicio Funerario de Cremación a Previsión',
         precio: 13500,
         incluye: [
@@ -564,6 +617,7 @@ const estado = {
   plazo: null,
   productosAdicionales: [], // conceptos y costos del paquete Platino/personalizable (única fuente del precio)
   ultimoAbono: null, // datos del último abono guardado, para generar su recibo
+  planes: JSON.parse(JSON.stringify(CONFIG.PLANES)), // catálogo de paquetes; se refresca desde la hoja "Paquetes" al iniciar (esto es solo el respaldo local)
   contratosCache: []
 };
 
@@ -672,6 +726,7 @@ document.querySelectorAll('nav.tabs button').forEach((btn) => {
     document.getElementById('vista-' + btn.dataset.vista).classList.add('activa');
     if (btn.dataset.vista === 'abono') cargarFoliosParaAbono();
     if (btn.dataset.vista === 'lista') cargarListaContratos();
+    if (btn.dataset.vista === 'paquetes') cargarPaquetes();
   });
 });
 
@@ -694,6 +749,9 @@ function inicializarApp() {
   document.getElementById('btn-agregar-producto').addEventListener('click', agregarProductoAdicional);
   document.getElementById('btn-cancelar-editar').addEventListener('click', cerrarEdicionContrato);
   document.getElementById('btn-guardar-edicion').addEventListener('click', guardarEdicionContrato);
+  document.getElementById('btn-nuevo-paquete').addEventListener('click', abrirNuevoPaquete);
+  document.getElementById('btn-cancelar-paquete').addEventListener('click', cerrarModalPaquete);
+  document.getElementById('btn-guardar-paquete').addEventListener('click', guardarModalPaquete);
   document.getElementById('c-enganche-pct').addEventListener('input', recalcularDesdePorcentaje);
   document.getElementById('c-enganche-monto').addEventListener('input', recalcularDesdeMonto);
 
@@ -710,6 +768,7 @@ function inicializarApp() {
   document.getElementById('l-buscar').addEventListener('input', filtrarListaContratos);
 
   seleccionarModalidad('Cremación');
+  cargarPaquetes();
 }
 
 async function generarFolioNuevo() {
@@ -733,7 +792,7 @@ function seleccionarModalidad(modalidad) {
 
   const cont = document.getElementById('contenedor-paquetes');
   cont.innerHTML = '';
-  const planes = CONFIG.PLANES[modalidad] || [];
+  const planes = estado.planes[modalidad] || [];
   const avisoEl = document.getElementById('aviso-paquetes-placeholder');
   avisoEl.textContent = '';
 
@@ -754,7 +813,7 @@ function seleccionarModalidad(modalidad) {
 function seleccionarPaquete(plan) {
   estado.paquete = plan;
   document.querySelectorAll('#contenedor-paquetes .paquete').forEach((el) => el.classList.remove('activa'));
-  const idx = (CONFIG.PLANES[estado.modalidad] || []).indexOf(plan);
+  const idx = (estado.planes[estado.modalidad] || []).indexOf(plan);
   const nodos = document.querySelectorAll('#contenedor-paquetes .paquete');
   if (nodos[idx]) nodos[idx].classList.add('activa');
 
@@ -766,6 +825,137 @@ function seleccionarPaquete(plan) {
   if (plan.personalizable) renderProductosAdicionales();
 
   recalcularDesdePorcentaje();
+}
+
+/* ==========================================================================
+   CATÁLOGO DE PAQUETES — cargar desde la hoja y administrar (editar/borrar)
+   ========================================================================== */
+
+/** Trae el catálogo real desde la hoja "Paquetes" y refresca lo que esté visible.
+ *  Si falla (sin internet, etc.) se sigue usando el respaldo local (estado.planes
+ *  ya viene precargado con los valores por defecto desde el arranque). */
+async function cargarPaquetes() {
+  const res = await apiGet({ action: 'listarPaquetes' }).catch(() => null);
+  if (res && res.ok && res.data) {
+    estado.planes = res.data;
+  }
+  const modalidadActual = estado.modalidad || 'Cremación';
+  const paqueteSeleccionadoId = estado.paquete ? estado.paquete.id : null;
+  seleccionarModalidad(modalidadActual);
+  if (paqueteSeleccionadoId) {
+    const nuevo = (estado.planes[modalidadActual] || []).find((p) => p.id === paqueteSeleccionadoId);
+    if (nuevo) seleccionarPaquete(nuevo);
+  }
+  pintarListaPaquetesAdmin();
+}
+
+function pintarListaPaquetesAdmin() {
+  const cont = document.getElementById('lista-paquetes-admin');
+  if (!cont) return;
+  const modalidades = Object.keys(estado.planes);
+  cont.innerHTML = modalidades.map((modalidad) => `
+    <div class="grupo-modalidad-admin">
+      <h3>${modalidad}</h3>
+      ${(estado.planes[modalidad] || []).map((p) => `
+        <div class="paquete-admin">
+          <div class="info">
+            <div class="nombre">${p.nombre}${p.personalizable ? ' <small>(personalizable)</small>' : ''}</div>
+            <div class="precio">${p.personalizable ? 'Sin precio fijo' : mxn(p.precio)}</div>
+            <div class="conteo">${(p.incluye || []).length} artículo(s) incluido(s)</div>
+          </div>
+          <div class="acciones">
+            <button class="btn-icono editar-paquete" data-id="${p.id}" data-modalidad="${modalidad}" title="Editar" type="button">✏️</button>
+            <button class="btn-icono borrar borrar-paquete" data-id="${p.id}" data-nombre="${p.nombre.replace(/"/g, '&quot;')}" title="Borrar" type="button">🗑️</button>
+          </div>
+        </div>
+      `).join('') || '<p class="desc">Sin paquetes en esta modalidad todavía.</p>'}
+    </div>
+  `).join('');
+}
+
+document.getElementById('lista-paquetes-admin').addEventListener('click', (e) => {
+  const btnEditar = e.target.closest('.editar-paquete');
+  if (btnEditar) {
+    const plan = (estado.planes[btnEditar.dataset.modalidad] || []).find((p) => p.id === btnEditar.dataset.id);
+    if (plan) abrirEdicionPaquete(plan, btnEditar.dataset.modalidad);
+    return;
+  }
+  const btnBorrar = e.target.closest('.borrar-paquete');
+  if (btnBorrar) { borrarPaqueteConfirmado(btnBorrar.dataset.id, btnBorrar.dataset.nombre); return; }
+});
+
+let paqueteEnEdicionId = null; // null = se está creando uno nuevo
+
+function abrirNuevoPaquete() {
+  paqueteEnEdicionId = null;
+  document.getElementById('titulo-modal-paquete').textContent = 'Agregar paquete nuevo';
+  document.getElementById('pq-modalidad').value = estado.modalidad || 'Cremación';
+  document.getElementById('pq-nombre').value = '';
+  document.getElementById('pq-precio').value = '';
+  document.getElementById('pq-personalizable').checked = false;
+  document.getElementById('pq-incluye').value = '';
+  document.getElementById('msg-paquete-modal').textContent = '';
+  document.getElementById('modal-paquete').classList.add('activo');
+}
+
+function abrirEdicionPaquete(plan, modalidad) {
+  paqueteEnEdicionId = plan.id;
+  document.getElementById('titulo-modal-paquete').textContent = 'Editar paquete';
+  document.getElementById('pq-modalidad').value = modalidad;
+  document.getElementById('pq-nombre').value = plan.nombre;
+  document.getElementById('pq-precio').value = plan.precio || 0;
+  document.getElementById('pq-personalizable').checked = !!plan.personalizable;
+  document.getElementById('pq-incluye').value = (plan.incluye || []).join('\n');
+  document.getElementById('msg-paquete-modal').textContent = '';
+  document.getElementById('modal-paquete').classList.add('activo');
+}
+
+function cerrarModalPaquete() {
+  document.getElementById('modal-paquete').classList.remove('activo');
+}
+
+async function guardarModalPaquete() {
+  const msg = document.getElementById('msg-paquete-modal');
+  const nombre = document.getElementById('pq-nombre').value.trim();
+  if (!nombre) { msg.className = 'mensaje-estado error'; msg.textContent = 'Ponle un nombre al paquete.'; return; }
+
+  const paquete = {
+    id: paqueteEnEdicionId,
+    modalidad: document.getElementById('pq-modalidad').value,
+    nombre,
+    precio: parseFloat(document.getElementById('pq-precio').value) || 0,
+    personalizable: document.getElementById('pq-personalizable').checked,
+    incluye: document.getElementById('pq-incluye').value.split('\n').map((s) => s.trim()).filter(Boolean)
+  };
+
+  msg.className = 'mensaje-estado'; msg.textContent = 'Guardando…';
+  const res = await apiPost({ action: 'guardarPaquete', paquete })
+    .catch(() => ({ ok: false, error: 'Sin conexión con el servidor.' }));
+
+  if (res.ok) {
+    msg.className = 'mensaje-estado ok'; msg.textContent = 'Paquete guardado.';
+    await cargarPaquetes();
+    setTimeout(cerrarModalPaquete, 700);
+  } else {
+    msg.className = 'mensaje-estado error'; msg.textContent = res.error || 'No se pudo guardar.';
+  }
+}
+
+async function borrarPaqueteConfirmado(id, nombre) {
+  const ok = confirm(`¿Borrar el paquete "${nombre}"? Esto no afecta contratos ya guardados con ese paquete, solo lo quita del catálogo para contratos nuevos.`);
+  if (!ok) return;
+
+  const msg = document.getElementById('msg-paquetes');
+  msg.className = 'mensaje-estado'; msg.textContent = 'Borrando…';
+  const res = await apiPost({ action: 'borrarPaquete', id })
+    .catch(() => ({ ok: false, error: 'Sin conexión con el servidor.' }));
+
+  if (res.ok) {
+    msg.className = 'mensaje-estado ok'; msg.textContent = 'Paquete borrado.';
+    cargarPaquetes();
+  } else {
+    msg.className = 'mensaje-estado error'; msg.textContent = res.error || 'No se pudo borrar.';
+  }
 }
 
 /* ==========================================================================
